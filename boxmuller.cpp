@@ -1,54 +1,50 @@
 #include <iostream>
 #include <fstream>
-#include <vector>
 #include <cmath>
-#include <random>
+#include <cstdlib>
 #include <ctime>
 
-// Define a constant for PI
 const double PI = 3.14159265358979323846;
 
-void generateGaussianSamples(const std::string &filename, int num_samples)
-{
-    // Modern C++ random number generation
-    // 1. Seed the random number engine
-    std::mt19937 engine(time(0) + (int)filename[0]); // Seed differently for X and Y
+int main() {
+    srand(time(NULL));
+    const int num_samples = 100000;
+    float fx[500] = {0.0f};
+    float fy[500] = {0.0f};
 
-    // 2. Create a distribution for uniform random numbers in (0, 1]
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    std::cout << "Generating " << num_samples << " samples and building histogram...\n";
 
-    // 3. Open the output file
-    std::ofstream outFile(filename);
-    if (!outFile.is_open())
-    {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return;
+    for (int i = 0; i < num_samples / 2; ++i) {
+        double u1 = ((double)rand() + 1.0) / (RAND_MAX + 1.0); 
+        double u2 = ((double)rand() + 1.0) / (RAND_MAX + 1.0);
+
+        double r = std::sqrt(-2.0 * std::log(u1));
+        double theta = 2.0 * PI * u2;
+        double z1 = r * std::cos(theta);
+        double z2 = r * std::sin(theta);
+
+        int k1 = (int)((z1 + 5.0) * 50.0); 
+        int k2 = (int)((z2 + 5.0) * 50.0);
+
+        if (k1 >= 0 && k1 < 500) fx[k1]++;
+        if (k2 >= 0 && k2 < 500) fy[k2]++;
     }
 
-    // Generate samples in pairs using the Box-Muller transform
-    for (int i = 0; i < num_samples / 2; ++i)
-    {
-        double u1 = dist(engine);
-        double u2 = dist(engine);
-
-        // Box-Muller transform
-        double z1 = sqrt(-2.0 * log(u1)) * cos(2.0 * PI * u2);
-        double z2 = sqrt(-2.0 * log(u1)) * sin(2.0 * PI * u2);
-
-        outFile << z1 << std::endl;
-        outFile << z2 << std::endl;
+    std::ofstream outFileX("histogram_X.txt");
+    std::ofstream outFileY("histogram_Y.txt");
+    if (!outFileX || !outFileY) {
+        std::cerr << "Failed to open output files.\n";
+        return 1;
     }
 
-    outFile.close();
-    std::cout << "Generated " << num_samples << " samples in " << filename << std::endl;
-}
+    for (int i = 0; i < 500; ++i) {
+        double bin_center_value = (double(i) / 50.0) - 5.0;
+        outFileX << bin_center_value << "\t" << fx[i] << "\n";
+        outFileY << bin_center_value << "\t" << fy[i] << "\n";
+    }
 
-int main()
-{
-    int num_samples = 1000000; 
-
-    generateGaussianSamples("X_samples.txt", num_samples);
-    generateGaussianSamples("Y_samples.txt", num_samples);
-
+    outFileX.close();
+    outFileY.close();
+    std::cout << "Wrote histogram_X.txt and histogram_Y.txt\n";
     return 0;
 }
